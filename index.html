@@ -17,7 +17,7 @@ h1{margin:0;font-size:32px;font-weight:700;color:var(--blue)}
 .take a{color:inherit}
 .bar{display:flex;flex-wrap:wrap;align-items:center;gap:16px;justify-content:space-between}
 .filter{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
-select{font:inherit;font-size:14px;padding:6px 10px;border-radius:var(--radius);border:1px solid var(--line);background:var(--card);color:var(--fg)}
+select,input[type=search]{font:inherit;font-size:14px;padding:6px 10px;border-radius:var(--radius);border:1px solid var(--line);background:var(--card);color:var(--fg)}
 .legend{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--muted);margin:0}
 .key{display:inline-flex;align-items:center;gap:6px}
 .sw{display:inline-block;width:14px;height:3px;border-radius:2px}
@@ -73,7 +73,7 @@ a.read{font-size:13px;color:var(--blue)}
     <p class="take" id="take"></p>
   </header>
   <div class="bar">
-    <div class="filter"><label for="author">Show posts by</label><select id="author"></select></div>
+    <div class="filter"><label for="author">Show posts by</label><input id="author" type="search" list="authors" placeholder="Type an author's name" autocomplete="off"><datalist id="authors"></datalist></div>
     <p class="legend">
       <span class="key"><span class="sw" style="background:var(--blue)"></span>Impressions</span>
       <span class="key"><span class="sw" style="background:var(--violet)"></span>Clicks</span>
@@ -125,9 +125,9 @@ a.read{font-size:13px;color:var(--blue)}
   document.getElementById('foot').textContent = 'Data from Google Search Console, updated ' + fd(D.updated, { month: 'long', day: 'numeric', year: 'numeric' }) + '.';
 
   var sel = document.getElementById('author');
-  sel.append(new Option('Everyone', ''));
-  Array.from(new Set(D.posts.map(function (p) { return p.author; }).filter(Boolean))).sort().forEach(function (n) { sel.append(new Option(n, n)); });
-  sel.onchange = render;
+  var dl = document.getElementById('authors');
+  Array.from(new Set(D.posts.map(function (p) { return p.author; }).filter(Boolean))).sort().forEach(function (n) { var o = document.createElement('option'); o.value = n; dl.append(o); });
+  sel.addEventListener('input', render);
 
   function badge(d, kind) {
     if (d === null || d === undefined) return el('span', 'badge flat', 'New');
@@ -205,9 +205,9 @@ a.read{font-size:13px;color:var(--blue)}
   function chip(t, c) { return el('span', 'chip' + (c ? ' ' + c : ''), t); }
 
   function render() {
-    var list = document.getElementById('list'), who = sel.value;
+    var list = document.getElementById('list'), who = sel.value.trim().toLowerCase();
     list.replaceChildren();
-    D.posts.filter(function (p) { return !who || p.author === who; }).sort(function (a, b) { return a.published < b.published ? 1 : -1; }).forEach(function (p) {
+    D.posts.filter(function (p) { return !who || (p.author || '').toLowerCase().indexOf(who) !== -1; }).sort(function (a, b) { return a.published < b.published ? 1 : -1; }).forEach(function (p) {
       var rows = byUrl.get(p.url) || [], c = change(p.url), has = p.impressions !== null;
       var det = el('details'), sum = el('summary'), name = el('div', 'name');
       name.append(el('span', 'post', p.title), el('p', 'meta', (p.author || 'Unknown author') + (p.published ? ' · ' + fmtDay(p.published) : '')));
