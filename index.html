@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Blog Performance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F1F5FE;--card:#FFFFFF;--fg:#2F2F2F;--muted:#6F6F72;--line:#BCCEF5;--grid:#E7EDFD;--blue:#294175;--violet:#513986;--good:#006368;--bad:#B3261E;--radius:8px}
+@media (prefers-color-scheme:dark){:root{--bg:#0E1425;--card:#1B2A4B;--fg:#FFFFFF;--muted:#BCCEF5;--line:#294175;--grid:#22355D;--blue:#8FA8E8;--violet:#A88FE3;--good:#4FC1B9;--bad:#F2867E}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:16px;line-height:1.45}
+.bp{max-width:1100px;margin:0 auto;padding:24px 16px 40px;display:flex;flex-direction:column;gap:20px}
+h1{margin:0;font-size:32px;font-weight:700;color:var(--blue)}
+.take{margin:6px 0 0}
+.take a{color:inherit}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:16px;justify-content:space-between}
+.filter{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+select{font:inherit;font-size:14px;padding:6px 10px;border-radius:var(--radius);border:1px solid var(--line);background:var(--card);color:var(--fg)}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--muted);margin:0}
+.key{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:14px;height:3px;border-radius:2px}
+.head{display:grid;grid-template-columns:minmax(0,2.2fr) repeat(3,minmax(0,1fr)) 18px;gap:16px;padding:0 20px;font-size:13px;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:8px}
+details{background:var(--card);border:1px solid var(--line);border-radius:var(--radius)}
+summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,2.2fr) repeat(3,minmax(0,1fr)) 18px;align-items:center;gap:16px;padding:14px 20px}
+summary::-webkit-details-marker{display:none}
+summary:hover{background:color-mix(in srgb,var(--blue) 4%,transparent)}
+.caret{width:10px;height:10px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);justify-self:end;transition:transform .25s ease}
+details[open] .caret{transform:rotate(225deg)}
+.post{font-weight:600;line-height:1.3;display:block}
+.meta{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.cell{display:flex;flex-direction:column;gap:2px;min-width:0}
+.lab{font-size:13px;color:var(--muted)}
+.line{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.val{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.badge{font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.up{color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent)}
+.down{color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.flat{color:var(--muted);background:color-mix(in srgb,var(--muted) 14%,transparent)}
+.spark{display:block;width:72px;height:20px;margin-top:2px}
+.open{padding:0 20px 20px;display:flex;flex-direction:column;gap:14px;border-top:1px solid var(--line)}
+.open h3{margin:14px 0 0;font-size:16px;font-weight:600;color:var(--blue)}
+.chart{position:relative;min-height:170px}
+.chart svg{display:block;width:100%;overflow:visible}
+.chart text{fill:var(--muted);font-size:12px;font-family:inherit}
+.chart .tick line{stroke:var(--grid)}
+.chart .domain{stroke:var(--line)}
+.tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--line);box-shadow:0 4px 16px rgba(14,20,37,.12);border-radius:var(--radius);padding:6px 10px;font-size:12px;white-space:nowrap}
+.tip b{display:block}
+.tip span{color:var(--muted)}
+.empty{font-size:13px;color:var(--muted);margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:13px;padding:2px 10px;border-radius:999px;background:color-mix(in srgb,var(--muted) 12%,transparent)}
+.chip.good{background:color-mix(in srgb,var(--good) 16%,transparent)}
+.chip.warn{background:color-mix(in srgb,#E0A100 22%,transparent)}
+.chip.bad{background:color-mix(in srgb,var(--bad) 16%,transparent)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:5px 8px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:600}
+a.read{font-size:13px;color:var(--blue)}
+.foot{font-size:13px;color:var(--muted)}
+@media (max-width:640px){summary,.head{grid-template-columns:repeat(3,minmax(0,1fr)) 18px}.name{grid-column:1/-1}.head{display:none}}
+</style>
+</head>
+<body>
+<div class="bp">
+  <header>
+    <h1>Blog Performance</h1>
+    <p class="take" id="take"></p>
+  </header>
+  <div class="bar">
+    <div class="filter"><label for="author">Show posts by</label><select id="author"></select></div>
+    <p class="legend">
+      <span class="key"><span class="sw" style="background:var(--blue)"></span>Impressions</span>
+      <span class="key"><span class="sw" style="background:var(--violet)"></span>Clicks</span>
+      <span class="key">Badges compare the latest month with the one before. Click a post for its full chart.</span>
+    </p>
+  </div>
+  <div class="head" aria-hidden="true"><span>Post</span><span>Impressions</span><span>Clicks</span><span>Avg position</span><span></span></div>
+  <div class="list" id="list"></div>
+  <p class="foot" id="foot"></p>
+</div>
+<script id="data" type="application/json">{"posts": [{"title": "Executable Architecture: Why AI Agents Make It Worth Building", "url": "https://sep.com/blog/executable-architecture/", "author": "Jason Dossett", "published": "2026-11-10", "keyphrase": "", "headline_score": null, "yoast_seo": "", "yoast_read": "", "impressions": null, "clicks": null, "ctr": null, "position": null, "period": "", "ai_citations": ""}, {"title": "Why Observed and Derived Facts Matter for Temporal Reasoning in Data Analytics", "url": "https://sep.com/blog/temporal-reasoning-in-data-analytics/", "author": "Jason Dossett", "published": "2026-10-30", "keyphrase": "", "headline_score": null, "yoast_seo": "", "yoast_read": "", "impressions": 5.0, "clicks": 0.0, "ctr": 0.0, "position": 5.8, "period": "October 2026", "ai_citations": ""}, {"title": "Lovelace's Objection Still Shapes 5 Big Questions About AI", "url": "https://sep.com/blog/lovelace-objection-ai/", "author": "Sarah Matlock", "published": "2026-10-13", "keyphrase": "", "headline_score": 74.0, "yoast_seo": "green", "yoast_read": "green", "impressions": 399.0, "clicks": 3.0, "ctr": 0.0075, "position": 4.2, "period": "October 2026", "ai_citations": ""}, {"title": "AI pair programming: punching above your weight class", "url": "https://sep.com/blog/ai-pair-programming-punching-above-your-weight-class/", "author": "Mike Rogers", "published": "2026-10-05", "keyphrase": "", "headline_score": null, "yoast_seo": "", "yoast_read": "", "impressions": 17.0, "clicks": 2.0, "ctr": 0.118, "position": 5.4, "period": "October 2026", "ai_citations": ""}, {"title": "A Million Lines of Markdown and No Code", "url": "https://sep.com/blog/a-million-lines-of-markdown-and-no-code/", "author": "Robert Herbig", "published": "2026-09-23", "keyphrase": "spec-driven development", "headline_score": null, "yoast_seo": "orange", "yoast_read": "red", "impressions": 6.0, "clicks": 0.0, "ctr": 0.0, "position": 4.2, "period": "October 2026", "ai_citations": ""}, {"title": "So, AI Killed Your Code Review Process. Now What?", "url": "https://sep.com/blog/so-ai-killed-your-code-review-process-now-what/", "author": "Nicole Selig", "published": "2026-09-22", "keyphrase": "AI Code Review", "headline_score": null, "yoast_seo": "green", "yoast_read": "green", "impressions": 39.0, "clicks": 0.0, "ctr": 0.0, "position": 8.4, "period": "October 2026", "ai_citations": ""}, {"title": "What Are Embedded Systems? A Definition (with Cool Animal Facts)", "url": "https://sep.com/blog/what-are-embedded-systems-a-definition/", "author": "Mike Rogers", "published": "2026-09-16", "keyphrase": "what are embedded systems", "headline_score": null, "yoast_seo": "green", "yoast_read": "red", "impressions": 1066.0, "clicks": 1.0, "ctr": 0.0009, "position": 15.4, "period": "October 2026", "ai_citations": ""}, {"title": "Getting Physical with AI (2): A System 1 Brain for My Musubi-Making Agent", "url": "https://sep.com/blog/getting-physical-with-ai-2-a-system-1-brain-for-my-musubi-making-agent/", "author": "Kal Cantrell", "published": "2026-09-10", "keyphrase": "Physical AI", "headline_score": null, "yoast_seo": "green", "yoast_read": "green", "impressions": 63.0, "clicks": 0.0, "ctr": 0.0, "position": 6.2, "period": "October 2026", "ai_citations": ""}, {"title": "At SEP, an Idea Is Enough", "url": "https://sep.com/blog/at-sep-an-idea-is-enough/", "author": "Vish Patwari", "published": "2026-09-10", "keyphrase": "internal debate series", "headline_score": null, "yoast_seo": "green", "yoast_read": "green", "impressions": 8.0, "clicks": 0.0, "ctr": 0.0, "position": 6.4, "period": "October 2026", "ai_citations": ""}, {"title": "Getting Physical with AI (1): A Body for My Musubi-Making Agent", "url": "https://sep.com/blog/getting-physical-with-ai-1-a-body-for-my-musubi-making-agent/", "author": "Kal Cantrell", "published": "2026-09-06", "keyphrase": "Physical AI", "headline_score": null, "yoast_seo": "green", "yoast_read": "green", "impressions": 29.0, "clicks": 0.0, "ctr": 0.0, "position": 5.5, "period": "October 2026", "ai_citations": ""}], "history": [{"url": "https://sep.com/blog/so-ai-killed-your-code-review-process-now-what/", "month": "2026-09-01", "impressions": 101.0, "clicks": 1.0, "ctr": 0.0099, "position": 6.4, "ai_engines": ""}, {"url": "https://sep.com/blog/a-million-lines-of-markdown-and-no-code/", "month": "2026-09-01", "impressions": 36.0, "clicks": 1.0, "ctr": 0.028, "position": 6.2, "ai_engines": ""}, {"url": "https://sep.com/blog/what-are-embedded-systems-a-definition/", "month": "2026-09-01", "impressions": 168.0, "clicks": 0.0, "ctr": 0.0, "position": 15.9, "ai_engines": ""}, {"url": "https://sep.com/blog/getting-physical-with-ai-2-a-system-1-brain-for-my-musubi-making-agent/", "month": "2026-09-01", "impressions": 103.0, "clicks": 0.0, "ctr": 0.0, "position": 5.5, "ai_engines": ""}, {"url": "https://sep.com/blog/getting-physical-with-ai-1-a-body-for-my-musubi-making-agent/", "month": "2026-09-01", "impressions": 55.0, "clicks": 0.0, "ctr": 0.0, "position": 8.0, "ai_engines": ""}, {"url": "https://sep.com/blog/at-sep-an-idea-is-enough/", "month": "2026-09-01", "impressions": 9.0, "clicks": 0.0, "ctr": 0.0, "position": 4.6, "ai_engines": ""}, {"url": "https://sep.com/blog/lovelace-objection-ai/", "month": "2026-10-01", "impressions": 399.0, "clicks": 3.0, "ctr": 0.0075, "position": 4.2, "ai_engines": ""}, {"url": "https://sep.com/blog/ai-pair-programming-punching-above-your-weight-class/", "month": "2026-10-01", "impressions": 17.0, "clicks": 2.0, "ctr": 0.118, "position": 5.4, "ai_engines": ""}, {"url": "https://sep.com/blog/what-are-embedded-systems-a-definition/", "month": "2026-10-01", "impressions": 1066.0, "clicks": 1.0, "ctr": 0.0009, "position": 15.4, "ai_engines": ""}, {"url": "https://sep.com/blog/getting-physical-with-ai-2-a-system-1-brain-for-my-musubi-making-agent/", "month": "2026-10-01", "impressions": 63.0, "clicks": 0.0, "ctr": 0.0, "position": 6.2, "ai_engines": ""}, {"url": "https://sep.com/blog/so-ai-killed-your-code-review-process-now-what/", "month": "2026-10-01", "impressions": 39.0, "clicks": 0.0, "ctr": 0.0, "position": 8.4, "ai_engines": ""}, {"url": "https://sep.com/blog/getting-physical-with-ai-1-a-body-for-my-musubi-making-agent/", "month": "2026-10-01", "impressions": 29.0, "clicks": 0.0, "ctr": 0.0, "position": 5.5, "ai_engines": ""}, {"url": "https://sep.com/blog/at-sep-an-idea-is-enough/", "month": "2026-10-01", "impressions": 8.0, "clicks": 0.0, "ctr": 0.0, "position": 6.4, "ai_engines": ""}, {"url": "https://sep.com/blog/a-million-lines-of-markdown-and-no-code/", "month": "2026-10-01", "impressions": 6.0, "clicks": 0.0, "ctr": 0.0, "position": 4.2, "ai_engines": ""}, {"url": "https://sep.com/blog/temporal-reasoning-in-data-analytics/", "month": "2026-10-01", "impressions": 5.0, "clicks": 0.0, "ctr": 0.0, "position": 5.8, "ai_engines": ""}], "updated": "2026-11-25"}</script>
+<script>
+(function () {
+  var D = JSON.parse(document.getElementById('data').textContent);
+  var css = getComputedStyle(document.documentElement);
+  var C = { blue: css.getPropertyValue('--blue').trim(), violet: css.getPropertyValue('--violet').trim() };
+  var NS = 'http://www.w3.org/2000/svg';
+  function fmtInt(n) { return Math.round(n).toLocaleString('en-US'); }
+  function fd(s, o) { return new Date(String(s).slice(0, 10) + 'T00:00:00Z').toLocaleDateString('en-US', Object.assign({ timeZone: 'UTC' }, o)); }
+  function fmtMonth(s) { return fd(s, { month: 'short', year: 'numeric' }); }
+  function fmtShort(s) { return fd(s, { month: 'short' }); }
+  function fmtDay(s) { return fd(s, { month: 'short', day: 'numeric', year: 'numeric' }); }
+  function fmtPct(v) { return (v * 100).toFixed(1) + '%'; }
+  function si(n) { return n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(n); }
+  function nice(max, n) { if (!(max > 0)) max = 1; var raw = max / n, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p, s = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; if (s < 1) s = 1; return { max: Math.ceil(max / s) * s, step: s }; }
+  function sv(tag, a, parent) { var e = document.createElementNS(NS, tag); for (var k in a) e.setAttribute(k, a[k]); if (parent) parent.appendChild(e); return e; }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+  var yoastCls = { green: 'good', orange: 'warn', red: 'bad' };
+  var safe = function (u) { return /^https:\/\//.test(String(u || '')) ? u : null; };
+
+  var byUrl = new Map();
+  D.history.forEach(function (r) { if (!byUrl.has(r.url)) byUrl.set(r.url, []); byUrl.get(r.url).push(r); });
+  byUrl.forEach(function (rows) { rows.sort(function (a, b) { return a.month < b.month ? -1 : a.month > b.month ? 1 : 0; }); });
+  function change(url) {
+    var rows = byUrl.get(url) || [];
+    if (rows.length < 2) return {};
+    var a = rows[rows.length - 2], b = rows[rows.length - 1];
+    return { imp: b.impressions - a.impressions, clk: b.clicks - a.clicks, pos: (a.position !== null && b.position !== null) ? Math.round((a.position - b.position) * 10) / 10 : null };
+  }
+
+  var best = null;
+  D.posts.forEach(function (p) { var c = change(p.url); if (c.imp !== undefined && (!best || c.imp > best.c.imp)) best = { p: p, c: c }; });
+  var take = document.getElementById('take');
+  if (best && best.c.imp > 0) {
+    take.append('Biggest climber in search last month: ');
+    var a = el('a', null, best.p.title); if (safe(best.p.url)) { a.href = best.p.url; a.target = '_blank'; a.rel = 'noopener'; }
+    take.append(a, ', up ', el('b', null, fmtInt(best.c.imp)), ' impressions.');
+  }
+  document.getElementById('foot').textContent = 'Data from Google Search Console, updated ' + fd(D.updated, { month: 'long', day: 'numeric', year: 'numeric' }) + '.';
+
+  var sel = document.getElementById('author');
+  sel.append(new Option('Everyone', ''));
+  Array.from(new Set(D.posts.map(function (p) { return p.author; }).filter(Boolean))).sort().forEach(function (n) { sel.append(new Option(n, n)); });
+  sel.onchange = render;
+
+  function badge(d, kind) {
+    if (d === null || d === undefined) return el('span', 'badge flat', 'New');
+    if (d > 0) return el('span', 'badge up', '▲ ' + (kind === 'pos' ? d.toFixed(1) : '+' + fmtInt(d)));
+    if (d < 0) return el('span', 'badge down', '▼ ' + (kind === 'pos' ? Math.abs(d).toFixed(1) : fmtInt(d)));
+    return el('span', 'badge flat', '● 0');
+  }
+  function cell(label, value, d, kind, extra) {
+    var c = el('div', 'cell'), l = el('div', 'line');
+    l.append(el('span', 'val', value), badge(d, kind));
+    c.append(el('span', 'lab', label), l); if (extra) c.append(extra); return c;
+  }
+  function spark(rows) {
+    var vals = rows.map(function (r) { return r.impressions; });
+    var svg = sv('svg', { 'class': 'spark', viewBox: '0 0 72 20', role: 'img', 'aria-label': 'Impressions by month: ' + vals.join(', ') });
+    if (vals.length < 2) return svg;
+    var mx = Math.max.apply(null, vals) || 1;
+    var X = function (i) { return 2 + i * 68 / (vals.length - 1); }, Y = function (v) { return 18 - v / mx * 16; };
+    sv('path', { fill: 'none', stroke: C.blue, 'stroke-width': 2, d: 'M' + vals.map(function (v, i) { return X(i) + ',' + Y(v); }).join('L') }, svg);
+    sv('circle', { r: 2.5, cx: X(vals.length - 1), cy: Y(vals[vals.length - 1]), fill: C.blue }, svg);
+    return svg;
+  }
+  function chart(box, rows, title) {
+    box.replaceChildren();
+    if (!rows.length) { box.append(el('p', 'empty', 'No search data yet. The first month arrives with the next monthly update.')); return; }
+    var w = Math.max(240, box.clientWidth || 320), h = 170, m = { t: 10, r: 36, b: 24, l: 44 };
+    var n = rows.length, iw = w - m.l - m.r, ih = h - m.t - m.b;
+    var X = function (i) { return n > 1 ? m.l + i * iw / (n - 1) : m.l + iw / 2; };
+    var nI = nice(Math.max.apply(null, rows.map(function (r) { return r.impressions; })), 4);
+    var nC = nice(Math.max(1, Math.max.apply(null, rows.map(function (r) { return r.clicks; }))), 3);
+    var YI = function (v) { return m.t + ih - v / nI.max * ih; }, YC = function (v) { return m.t + ih - v / nC.max * ih; };
+    var svg = sv('svg', { viewBox: '0 0 ' + w + ' ' + h, height: h, role: 'img', 'aria-label': 'Monthly impressions and clicks for ' + title });
+    box.append(svg);
+    for (var v = 0; v <= nI.max + 1e-9; v += nI.step) {
+      sv('line', { x1: m.l, x2: w - m.r, y1: YI(v), y2: YI(v), stroke: 'var(--grid)' }, svg);
+      sv('text', { x: m.l - 6, y: YI(v) + 4, 'text-anchor': 'end' }, svg).textContent = si(v);
+    }
+    for (var c = 0; c <= nC.max + 1e-9; c += nC.step) sv('text', { x: w - m.r + 6, y: YC(c) + 4 }, svg).textContent = String(c);
+    sv('line', { x1: m.l, x2: w - m.r, y1: h - m.b, y2: h - m.b, stroke: 'var(--line)' }, svg);
+    rows.forEach(function (r, i) { sv('text', { x: X(i), y: h - 6, 'text-anchor': 'middle' }, svg).textContent = fmtShort(r.month); });
+    var line = function (Y, key) { return rows.map(function (r, i) { return X(i) + ',' + Y(r[key]); }); };
+    var li = line(YI, 'impressions');
+    if (n > 1) {
+      sv('path', { fill: C.blue, 'fill-opacity': .14, d: 'M' + X(0) + ',' + (h - m.b) + 'L' + li.join('L') + 'L' + X(n - 1) + ',' + (h - m.b) + 'Z' }, svg);
+      sv('path', { fill: 'none', stroke: C.blue, 'stroke-width': 2.5, d: 'M' + li.join('L') }, svg);
+      sv('path', { fill: 'none', stroke: C.violet, 'stroke-width': 2, 'stroke-dasharray': '4 3', d: 'M' + line(YC, 'clicks').join('L') }, svg);
+    }
+    rows.forEach(function (r, i) {
+      sv('circle', { r: 4, cx: X(i), cy: YI(r.impressions), fill: C.blue }, svg);
+      sv('circle', { r: 3, cx: X(i), cy: YC(r.clicks), fill: C.violet }, svg);
+    });
+    var tip = el('div', 'tip'); tip.style.display = 'none'; box.append(tip);
+    var hit = sv('rect', { x: m.l, y: m.t, width: iw, height: ih, fill: 'transparent' }, svg);
+    hit.addEventListener('pointermove', function (ev) {
+      var b = svg.getBoundingClientRect(), mx = (ev.clientX - b.left) * w / b.width, bi = 0;
+      rows.forEach(function (r, i) { if (Math.abs(X(i) - mx) < Math.abs(X(bi) - mx)) bi = i; });
+      var p = rows[bi]; tip.replaceChildren(el('b', null, fmtMonth(p.month)), el('span', null, fmtInt(p.impressions) + ' impressions · ' + fmtInt(p.clicks) + (p.clicks === 1 ? ' click' : ' clicks') + (p.position !== null ? ' · position ' + p.position.toFixed(1) : '')));
+      tip.style.display = '';
+      var px = X(bi) / w * box.clientWidth, tw = tip.offsetWidth;
+      tip.style.left = Math.max(0, Math.min(box.clientWidth - tw, px - tw / 2)) + 'px'; tip.style.top = '-8px';
+    });
+    hit.addEventListener('pointerleave', function () { tip.style.display = 'none'; });
+    if (n < 2) box.append(el('p', 'empty', 'The trend line starts once there are two months of data.'));
+  }
+  function table(rows) {
+    var w = el('div', 'tw'), t = el('table'), hr = t.createTHead().insertRow();
+    ['Month', 'Impressions', 'Clicks', 'Click rate', 'Avg position', 'AI citing'].forEach(function (h) { hr.append(el('th', null, h)); });
+    var b = t.createTBody();
+    rows.slice().reverse().forEach(function (r) {
+      var tr = b.insertRow();
+      [fmtMonth(r.month), fmtInt(r.impressions), fmtInt(r.clicks), r.ctr === null ? '—' : fmtPct(r.ctr), r.position === null ? '—' : r.position.toFixed(1), r.ai_engines || 'None seen'].forEach(function (v) { tr.insertCell().textContent = v; });
+    });
+    w.append(t); return w;
+  }
+  function chip(t, c) { return el('span', 'chip' + (c ? ' ' + c : ''), t); }
+
+  function render() {
+    var list = document.getElementById('list'), who = sel.value;
+    list.replaceChildren();
+    D.posts.filter(function (p) { return !who || p.author === who; }).sort(function (a, b) { return a.published < b.published ? 1 : -1; }).forEach(function (p) {
+      var rows = byUrl.get(p.url) || [], c = change(p.url), has = p.impressions !== null;
+      var det = el('details'), sum = el('summary'), name = el('div', 'name');
+      name.append(el('span', 'post', p.title), el('p', 'meta', (p.author || 'Unknown author') + (p.published ? ' · ' + fmtDay(p.published) : '')));
+      var caret = el('span', 'caret'); caret.setAttribute('aria-hidden', 'true');
+      sum.append(name,
+        cell('Impressions', has ? fmtInt(p.impressions) : '—', c.imp, 'num', spark(rows)),
+        cell('Clicks', has ? fmtInt(p.clicks) : '—', c.clk, 'num'),
+        cell('Avg position', has && p.position !== null ? p.position.toFixed(1) : '—', c.pos, 'pos'),
+        caret);
+      var open = el('div', 'open'), box = el('div', 'chart'), chips = el('div', 'chips');
+      if (p.yoast_seo) chips.append(chip('Yoast SEO: ' + p.yoast_seo, yoastCls[p.yoast_seo]));
+      if (p.yoast_read) chips.append(chip('Readability: ' + p.yoast_read, yoastCls[p.yoast_read]));
+      if (p.headline_score !== null) chips.append(chip('Headline score ' + p.headline_score));
+      if (p.keyphrase) chips.append(chip('Keyphrase: ' + p.keyphrase));
+      chips.append(chip(p.ai_citations ? 'AI: ' + p.ai_citations : 'AI citations: none seen yet'));
+      open.append(el('h3', null, 'Search trend' + (p.period ? ' (latest: ' + p.period + ')' : '')), box, el('h3', null, 'Month by month'), rows.length ? table(rows) : chip('No monthly data yet'), el('h3', null, 'Post details'), chips);
+      if (safe(p.url)) { var a = el('a', 'read', 'Read the post on sep.com'); a.href = p.url; a.target = '_blank'; a.rel = 'noopener'; open.append(a); }
+      det.append(sum, open);
+      det.addEventListener('toggle', function () { if (det.open) chart(box, rows, p.title); });
+      list.append(det);
+    });
+  }
+  render();
+})();
+</script>
+</body>
+</html>
